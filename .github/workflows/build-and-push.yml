@@ -35,6 +35,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Show apps.json content
+        run: cat apps.json
+
       - name: Build and Push Image
         uses: docker/build-push-action@v6
         with:
@@ -45,8 +48,9 @@ jobs:
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=version-16
             CACHE_BUST=${{ github.run_id }}-${{ github.run_attempt }}
-          secrets: |
-            id=apps_json,src=apps.json
+          secret-files: |
+            apps_json=apps.json
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           push: true
+
