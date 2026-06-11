@@ -19,6 +19,14 @@ jobs:
       packages: write
 
     steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/share/swift
+          df -h
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -50,6 +58,7 @@ jobs:
             CACHE_BUST=${{ github.run_id }}-${{ github.run_attempt }}
           secret-files: |
             apps_json=apps.json
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           push: true
+
