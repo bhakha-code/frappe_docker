@@ -94,7 +94,7 @@ jobs:
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           echo "Checking image: ${IMAGE}"
 
-          APP_DIRS=$(docker run --rm --platform linux/arm64 "${IMAGE}" sh -lc "find /home/frappe/frappe-bench/apps -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort")
+          APP_DIRS=$(docker run --rm --platform linux/arm64 --entrypoint sh "${IMAGE}" -lc "find /home/frappe/frappe-bench/apps -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort")
           export APP_DIRS
 
           python - <<'PY'
