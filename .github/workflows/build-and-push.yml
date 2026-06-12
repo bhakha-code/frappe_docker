@@ -46,8 +46,33 @@ jobs:
       - name: Show apps.json content
         run: cat apps.json
 
+      - name: Validate apps manifest
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          apps = json.loads(Path("apps.json").read_text())
+          urls = [app.get("url", "") for app in apps]
+          required = {
+              "https://github.com/frappe/telephony",
+              "https://github.com/frappe/helpdesk",
+          }
+          missing = sorted(required - set(urls))
+
+          if missing:
+              raise SystemExit(f"Missing required apps in apps.json: {', '.join(missing)}")
+
+          print(f"apps.json contains {len(urls)} apps")
+          print("Included app URLs:")
+          for url in urls:
+              print(f"- {url}")
+          PY
+
       - name: Build and Push Image
         uses: docker/build-push-action@v6
+        env:
+          BUILDKIT_PROGRESS: plain
         with:
           context: .
           file: images/layered/Containerfile
