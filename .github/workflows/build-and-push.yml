@@ -94,7 +94,8 @@ jobs:
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           echo "Checking image: ${IMAGE}"
 
-          APP_DIRS=$(docker run --rm --platform linux/arm64 "${IMAGE}" sh -lc "ls /home/frappe/frappe-bench/apps")
+          APP_DIRS=$(docker run --rm --platform linux/arm64 "${IMAGE}" sh -lc "find /home/frappe/frappe-bench/apps -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort")
+          export APP_DIRS
 
           python - <<'PY'
           import json
@@ -111,7 +112,9 @@ jobs:
               repo = repo[:-4]
             expected.append(repo.replace("-", "_"))
 
-          in_image = [line.strip() for line in os.environ["APP_DIRS"].splitlines() if line.strip()]
+          in_image = [line.strip() for line in os.environ.get("APP_DIRS", "").splitlines() if line.strip()]
+          if not in_image:
+            raise SystemExit("No app directories detected in built image")
           missing = sorted(set(expected) - set(in_image))
 
           print("Expected app directories from apps.json:")
