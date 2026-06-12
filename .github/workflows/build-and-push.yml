@@ -54,14 +54,12 @@ jobs:
 
           apps = json.loads(Path("apps.json").read_text())
           urls = [app.get("url", "") for app in apps]
-          required = {
-              "https://github.com/frappe/telephony",
-              "https://github.com/frappe/helpdesk",
-          }
-          missing = sorted(required - set(urls))
+          if not urls:
+            raise SystemExit("apps.json is empty")
 
-          if missing:
-              raise SystemExit(f"Missing required apps in apps.json: {', '.join(missing)}")
+          invalid = [u for u in urls if not u.startswith("https://github.com/")]
+          if invalid:
+            raise SystemExit(f"Invalid app URLs in apps.json: {', '.join(invalid)}")
 
           print(f"apps.json contains {len(urls)} apps")
           print("Included app URLs:")
@@ -84,5 +82,46 @@ jobs:
           secrets: |
             id=apps_json,src=apps.json
           platforms: linux/arm64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           push: true
+
+      - name: Verify required apps in pushed image
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "Checking image: ${IMAGE}"
+
+          APP_DIRS=$(docker run --rm --platform linux/arm64 "${IMAGE}" sh -lc "ls /home/frappe/frappe-bench/apps")
+
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          apps = json.loads(Path("apps.json").read_text())
+
+          expected = []
+          for app in apps:
+            url = app["url"].rstrip("/")
+            repo = url.split("/")[-1]
+            if repo.endswith(".git"):
+              repo = repo[:-4]
+            expected.append(repo.replace("-", "_"))
+
+          in_image = [line.strip() for line in os.environ["APP_DIRS"].splitlines() if line.strip()]
+          missing = sorted(set(expected) - set(in_image))
+
+          print("Expected app directories from apps.json:")
+          for app in sorted(expected):
+            print(f"- {app}")
+
+          print("App directories found in built image:")
+          for app in sorted(in_image):
+            print(f"- {app}")
+
+          if missing:
+            raise SystemExit(f"Missing app directories in image: {', '.join(missing)}")
+          PY
