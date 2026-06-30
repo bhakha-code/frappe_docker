@@ -8,8 +8,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: bhakha-code/erpnext-custom
-  IMAGE_TAG: v16.22.0
+  IMAGE_NAME: bhakha-services/erpnext-custom
+  IMAGE_TAG: v16.25.0
 
 jobs:
   build-and-push:
